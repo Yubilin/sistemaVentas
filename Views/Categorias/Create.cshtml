@@ -1,0 +1,24 @@
+﻿@using sistemaVentas.Models
+@model Categoria
+
+@{
+    ViewData["Title"] = "Nueva Categoría";
+}
+
+<div class="container mt-4">
+    <h2>Nueva Categoría</h2>
+    <hr />
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <partial name="_Form" model="Model">
+                
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
