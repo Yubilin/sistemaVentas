@@ -1,12 +1,327 @@
+
+@model sistemaVentas.Models.DashboardViewModel
+
 @{
-    ViewData[index:"Title"]="Inicio";
+    ViewData["Title"] = "Dashboard";
 }
-<div class="p-5 mb-4 bg-light rounded-3">
-    <h1 class="display-6">Sistema WEB de ventas</h1>
-    <p class="lead">Programcion WEB II</p>
-    <a class="btn btn-primary" asp-controller="Productos" asp-action="Index"> Ver Productos</a>
-    <a class="btn btn-outline-secondary" asp-controller="Categorias" asp-action="Index">Ver Categorias</a>
-    <a class="btn btn-primary" asp-controller="Ventas" asp-action="Index">Ver Ventas</a>
-    <a class="btn btn-primary" asp-controller="Clientes" asp-action="Index">Ver Clientes</a>
-    <a class="btn btn-primary" asp-controller="Productos" asp-action="Index">Ver Productos</a>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Dashboard</h2>
+        <p class="text-muted">Resumen de tu sistema de ventas</p>
+    </div>
+
+    <a asp-controller="Ventas"
+       asp-action="Create"
+       class="btn btn-primary">
+        Nueva venta
+    </a>
 </div>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas de hoy</p>
+                <h3>Bs. @Model.VentasHoy.ToString("N2")</h3>
+                <i class="bi bi-cash-stack text-success"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas del mes</p>
+                <h3>Bs. @Model.VentasMes.ToString("N2")</h3>
+                <i class="bi bi-calendar-month text-primary"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas del año</p>
+                <h3>Bs. @Model.VentasAnio.ToString("N2")</h3>
+                <i class="bi bi-graph-up text-info"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ticket promedio del mes</p>
+                <h3>Bs. @Model.TicketPromedio.ToString("N2")</h3>
+                <i class="bi bi-receipt text-warning"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Clientes registrados</p>
+                <h3>@Model.TotalClientes</h3>
+                <a asp-controller="Clientes"
+                   asp-action="Index">Ver clientes</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Productos con stock bajo</p>
+                <h3 class="text-warning">@Model.ProductosStockBajo</h3>
+                <a asp-controller="Productos"
+                   asp-action="Index">Ver productos</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Productos agotados</p>
+                <h3 class="text-danger">@Model.ProductosAgotados</h3>
+                <a asp-controller="Productos"
+                   asp-action="Index">Revisar inventario</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex flex-wrap
+                justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Ventas por día</h5>
+
+        <form asp-controller="Dashboard"
+              asp-action="Index"
+              method="get">
+
+            <select name="dias"
+                    class="form-select"
+                    onchange="this.form.submit()">
+
+                <option value="7"
+                        selected="@(Model.DiasSeleccionados == 7)">
+                    Últimos 7 días
+                </option>
+
+                <option value="15"
+                        selected="@(Model.DiasSeleccionados == 15)">
+                    Últimos 15 días
+                </option>
+
+                <option value="30"
+                        selected="@(Model.DiasSeleccionados == 30)">
+                    Últimos 30 días
+                </option>
+            </select>
+        </form>
+    </div>
+
+    <div class="card-body">
+        <canvas id="graficoVentas" height="100"></canvas>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Alertas del sistema</h5>
+    </div>
+
+    <div class="card-body">
+        @foreach (var alerta in Model.Alertas)
+        {
+            var sinAlertas = alerta == "No hay alertas de inventario.";
+
+            <div class="alert @(sinAlertas
+                ? "alert-success"
+                : "alert-warning") mb-2">
+
+                <i class="bi @(sinAlertas
+                    ? "bi-check-circle"
+                    : "bi-exclamation-triangle")"></i>
+
+                @alerta
+            </div>
+        }
+    </div>
+</div>
+
+@* ANÁLISIS DE LOS ÚLTIMOS 30 DÍAS *@
+
+<div class="row g-4 mt-2 mb-4">
+
+    @* VENTAS POR CATEGORÍA *@
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h5 class="mb-1">Ventas por categoría</h5>
+                <small class="text-muted">Últimos 30 días</small>
+            </div>
+
+            <div class="card-body">
+                @if (Model.VentasPorCategoria.Any())
+                {
+                    @foreach (var categoria in Model.VentasPorCategoria)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>@categoria.Categoria</span>
+                                <strong>Bs. @categoria.Total.ToString("N2")</strong>
+                            </div>
+
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success"
+                                     role="progressbar"
+                                     style="width: @(Model.VentasPorCategoria.Max(x => x.Total) > 0 ? (double)(categoria.Total / Model.VentasPorCategoria.Max(x => x.Total) * 100) : 0)%">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        No hay ventas por categoría en este periodo.
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* PRODUCTOS MÁS VENDIDOS *@
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h5 class="mb-1">Productos más vendidos</h5>
+                <small class="text-muted">Últimos 30 días</small>
+            </div>
+
+            <div class="card-body">
+                @if (Model.ProductosMasVendidos.Any())
+                {
+                    @foreach (var producto in Model.ProductosMasVendidos)
+                    {
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <div class="fw-semibold">@producto.Producto</div>
+                                <small class="text-muted">
+                                    @producto.Cantidad unidades
+                                </small>
+                            </div>
+
+                            <strong>Bs. @producto.Total.ToString("N2")</strong>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        No hay productos vendidos en este periodo.
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ÚLTIMAS VENTAS *@
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3">
+                <h5 class="mb-1">Últimas ventas</h5>
+                <small class="text-muted">Registros recientes</small>
+            </div>
+
+            <div class="card-body">
+                @if (Model.UltimasVentas.Any())
+                {
+                    @foreach (var venta in Model.UltimasVentas)
+                    {
+                        <div class="d-flex justify-content-between align-items-start border-bottom py-2">
+                            <div>
+                                <div class="fw-semibold">
+                                    Venta #@venta.Id
+                                </div>
+
+                                <small class="text-muted">
+                                    @venta.Cliente
+                                </small>
+
+                                <div>
+                                    <small class="text-muted">
+                                        @venta.Fecha.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </div>
+                            </div>
+
+                            <strong class="text-success">
+                                Bs. @venta.Total.ToString("N2")
+                            </strong>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        Todavía no hay ventas registradas.
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const etiquetas = @Html.Raw(
+            System.Text.Json.JsonSerializer.Serialize(Model.EtiquetasDias)
+        );
+
+        const datos = @Html.Raw(
+            System.Text.Json.JsonSerializer.Serialize(Model.VentasPorDia)
+        );
+
+        new Chart(document.getElementById('graficoVentas'), {
+            type: 'line',
+            data: {
+                labels: etiquetas,
+                datasets: [{
+                    label: 'Ventas en Bs.',
+                    data: datos,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => 'Bs. ' + value
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

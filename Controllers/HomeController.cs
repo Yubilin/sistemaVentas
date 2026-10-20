@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using sistemaVentas.Models;
 
-namespace SistemaVentas.Controllers;
+namespace sistemaVentas.Controllers;
 
 public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        return View();
+        var modelo = new DashboardViewModel();
+        return View(modelo);
     }
 
     public IActionResult Error()

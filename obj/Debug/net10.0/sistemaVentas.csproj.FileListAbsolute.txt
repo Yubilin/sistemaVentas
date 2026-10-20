@@ -147,3 +147,8 @@ D:\sistemaVentas\obj\Debug\net10.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.
 D:\sistemaVentas\obj\Debug\net10.0\scopedcss\projectbundle\sistemaVentas.bundle.scp.css
 D:\sistemaVentas\obj\Debug\net10.0\compressed\lbuktpj7hl-{0}-5iwl5hgirk-5iwl5hgirk.gz
 D:\sistemaVentas\obj\Debug\net10.0\compressed\p3gt5azlhl-{0}-5iwl5hgirk-5iwl5hgirk.gz
+D:\sistemaVentas\obj\Debug\net10.0\sistemaVentas.sourcelink.json
+D:\sistemaVentas\bin\Debug\net10.0\publish\web.config
+D:\sistemaVentas\bin\Debug\net10.0\publish\sistemaVentas.deps.json
+D:\sistemaVentas\bin\Debug\net10.0\publish\sistemaVentas.runtimeconfig.json
+D:\sistemaVentas\bin\Debug\net10.0\publish\sistemaVentas.staticwebassets.endpoints.json

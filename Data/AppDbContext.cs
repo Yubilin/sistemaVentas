@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<DetalleVenta> DetalleVentas => Set<DetalleVenta>();
     public DbSet<Producto> Producto => Set<Producto>();
     public DbSet<Venta> Ventas => Set<Venta>();
+
     //Metodos paraconfigurar restricciones , relaciones y datos iniciales
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

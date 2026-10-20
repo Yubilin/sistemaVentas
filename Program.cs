@@ -25,7 +25,9 @@ builder.Services.AddControllersWithViews();
 
 // 2) Base de datos. El proveedor se cambia SOLO en esta línea.
 //    Ahora: SQLite (archivo local). Ver README, sección "Conexión a Turso".
-var dbPath = Environment.GetEnvironmentVariable("DB_PATH") ?? "ventas.db";
+//var dbPath = Environment.GetEnvironmentVariable("DB_PATH") ?? "ventas.db";
+    var dbPath = Environment.GetEnvironmentVariable("DB_PATH")
+                    ?? Path.Combine(builder.Environment.ContentRootPath,"ventas.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 
@@ -35,7 +37,11 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate(); // crear tablas(y los datosiniciales) si
+}
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
