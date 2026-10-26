@@ -15,7 +15,7 @@ namespace sistemaVentas.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
 
             modelBuilder.Entity("sistemaVentas.Models.Categoria", b =>
                 {
@@ -195,7 +195,7 @@ namespace sistemaVentas.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("sistemaVentas.Models.Venta", "venta")
+                    b.HasOne("sistemaVentas.Models.Venta", "Venta")
                         .WithMany("Detalles")
                         .HasForeignKey("VentaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -203,7 +203,7 @@ namespace sistemaVentas.Migrations
 
                     b.Navigation("Producto");
 
-                    b.Navigation("venta");
+                    b.Navigation("Venta");
                 });
 
             modelBuilder.Entity("sistemaVentas.Models.Producto", b =>

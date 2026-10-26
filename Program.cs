@@ -1,47 +1,159 @@
-using System.Globalization;
-using Microsoft.EntityFrameworkCore;
-using sistemaVentas.Data;
 
-// 1) Cargar el archivo .env (ASP.NET Core no lo lee solo). En Railway no existe: se usan variables del panel.
-var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using sistemaVentas.Data;
+var envFile = Path.Combine(
+    Directory.GetCurrentDirectory(), ".env");
+
 if (File.Exists(envFile))
 {
     foreach (var linea in File.ReadAllLines(envFile))
     {
         var l = linea.Trim();
-        if (l.Length == 0 || l.StartsWith('#') || !l.Contains('=')) continue;
+
+        if (l.Length == 0 || l.StartsWith('#') || !l.Contains('='))
+            continue;
+
         var partes = l.Split('=', 2);
-        Environment.SetEnvironmentVariable(partes[0].Trim(), partes[1].Trim().Trim('"'));
+
+        Environment.SetEnvironmentVariable(
+            partes[0].Trim(),
+            partes[1].Trim().Trim('"'));
     }
 }
 
-// Usar punto decimal siempre. Sin esto, en un Windows en español un precio "9.5" puede leerse como 95.
-CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentCulture =
+    CultureInfo.InvariantCulture;
+
+CultureInfo.DefaultThreadCurrentUICulture =
+    CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Credenciales del login
+var loginEmail =
+    Environment.GetEnvironmentVariable("LOGIN_EMAIL")?.Trim();
+
+var loginPassword =
+    Environment.GetEnvironmentVariable("LOGIN_PASSWORD");
+
+if (string.IsNullOrWhiteSpace(loginEmail) ||
+    string.IsNullOrWhiteSpace(loginPassword))
+{
+    throw new InvalidOperationException(
+        "Configura LOGIN_EMAIL y LOGIN_PASSWORD.");
+}
+
+// Credenciales de Turso
+var tursoUrl =
+    Environment.GetEnvironmentVariable("TURSO_DATABASE_URL")?.Trim();
+
+var tursoToken =
+    Environment.GetEnvironmentVariable("TURSO_AUTH_TOKEN")?.Trim();
+
+if (string.IsNullOrWhiteSpace(tursoUrl) ||
+    string.IsNullOrWhiteSpace(tursoToken))
+{
+    throw new InvalidOperationException(
+        "Configura TURSO_DATABASE_URL y TURSO_AUTH_TOKEN.");
+}
+
+if (!Uri.TryCreate(tursoUrl, UriKind.Absolute, out var uri) ||
+    (uri.Scheme != Uri.UriSchemeHttps &&
+     uri.Scheme != Uri.UriSchemeHttp))
+{
+    throw new InvalidOperationException(
+        "La URL de conexión debe comenzar con https://.");
+}
+
 builder.Services.AddControllersWithViews();
 
-// 2) Base de datos. El proveedor se cambia SOLO en esta línea.
-//    Ahora: SQLite (archivo local). Ver README, sección "Conexión a Turso".
-//var dbPath = Environment.GetEnvironmentVariable("DB_PATH") ?? "ventas.db";
-    var dbPath = Environment.GetEnvironmentVariable("DB_PATH")
-                    ?? Path.Combine(builder.Environment.ContentRootPath,"ventas.db");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+// Autenticación mediante cookies
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Cuenta/Login";
+        options.AccessDeniedPath = "/Cuenta/AccesoDenegado";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+    });
 
-// 3) Railway entrega el puerto en la variable PORT
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+var connectionString =
+    Microsoft.EntityFrameworkCore.LibSql.Connection
+        .LibSqlConnectionStringBuilder.Create(tursoUrl, tursoToken);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseLibSql(connectionString));
+
+// Puerto para Railway
 var port = Environment.GetEnvironmentVariable("PORT");
+
 if (!string.IsNullOrEmpty(port))
+{
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 var app = builder.Build();
+
+
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); // crear tablas(y los datosiniciales) si
+    var db = scope.ServiceProvider
+        .GetRequiredService<AppDbContext>();
+
+    try
+    {
+        Console.WriteLine("=== PRUEBA DE TURSO ===");
+
+        var conectado = await db.Database.CanConnectAsync();
+
+        Console.WriteLine($"Conexión: {conectado}");
+
+        if (conectado)
+        {
+            var pendientes = await db.Database
+                .GetPendingMigrationsAsync();
+
+            Console.WriteLine(
+                $"Migraciones pendientes: {pendientes.Count()}");
+
+            foreach (var migracion in pendientes)
+            {
+                Console.WriteLine($"Pendiente: {migracion}");
+            }
+        }
+
+        Console.WriteLine("=== FIN DE LA PRUEBA ===");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex}");
+    }
 }
+
+// Aplicar migraciones a la base de datos configurada
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider
+//        .GetRequiredService<AppDbContext>();
+
+//    db.Database.Migrate();
+//}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -49,6 +161,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",

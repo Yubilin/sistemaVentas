@@ -16,6 +16,17 @@ public class VentasController : Controller
         _context = context;
     }
 
+// Cargar los datos necesarios para la vista de ventas
+    private async Task CargarDatosFormulario()
+    {
+        ViewBag.Clientes = await _context.Clientes
+            .OrderBy(c => c.Nombre)
+            .ToListAsync();
+
+        ViewBag.Productos = await _context.Producto
+            .OrderBy(p => p.Nombre)
+            .ToListAsync();
+    }
     public async Task<IActionResult> Index()
     {
         var ventas = await _context.Ventas
@@ -26,32 +37,39 @@ public class VentasController : Controller
         return View(ventas);
     }
 
-    public async Task<IActionResult> Create()
+// Mostrar el formulario de nueva venta
+public async Task<IActionResult> Create()
+{
+    await CargarDatosFormulario();
+
+    return View(new Venta());
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Create(Venta venta)
+{
+    if (venta.ClienteId <= 0 ||
+        !await _context.Clientes.AnyAsync(cliente => cliente.Id == venta.ClienteId))
     {
-        ViewBag.ClienteId = new SelectList(await _context.Clientes.ToListAsync(), "Id", "Nombre");
-        ViewBag.Productos = await _context.Producto.ToListAsync(); // Para usar en la vista si haces un formulario dinámico
-        return View(new Venta());
+        ModelState.AddModelError(nameof(Venta.ClienteId), "Selecciona un cliente registrado.");
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Venta venta)
+    if (!ModelState.IsValid)
     {
-        if (!ModelState.IsValid) 
-        {
-            ViewBag.ClienteId = new SelectList(await _context.Clientes.ToListAsync(), "Id", "Nombre", venta.ClienteId);
-            return View(venta);
-        }
-
-        // Ejecutamos la lógica de negocio de tu modelo
-        venta.CalcularTotal();
-        venta.CalcularCambio();
-        venta.ActualizarStock();
-
-        _context.Ventas.Add(venta);
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        await CargarDatosFormulario();
+        return View(venta);
     }
+
+    venta.CalcularTotal();
+    venta.CalcularCambio();
+    venta.ActualizarStock();
+
+    _context.Ventas.Add(venta);
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Index));
+}
 
     public async Task<IActionResult> Details(int id)
     {

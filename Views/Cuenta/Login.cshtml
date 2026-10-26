@@ -1,0 +1,46 @@
+
+@model sistemaVentas.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Iniciar sesión";
+}
+
+<h2>Iniciar sesión</h2>
+
+<form asp-controller="cuenta"
+      asp-action="Login"
+      method="post">
+
+    <input type="hidden"
+           name="returnUrl"
+           value="@ViewData["ReturnUrl"]" />
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" class="form-control" autocomplete="username" />
+        <span asp-validation-for="Email"
+              class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Password"></label>
+        <input asp-for="Password"
+               type="password"
+             class="form-control"
+             autocomplete="current-password" />
+        <span asp-validation-for="Password"
+              class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="Recordarme" class="form-check-input" />
+        <label asp-for="Recordarme" class="form-check-label">Mantener la sesión iniciada durante 30 días</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        Iniciar sesión
+    </button>
+</form>

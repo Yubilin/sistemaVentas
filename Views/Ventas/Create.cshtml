@@ -19,30 +19,40 @@
                     <label class="form-label font-weight-bold">Fecha</label>
                     <input type="text" class="form-control" value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm")" readonly />
                 </div>
-                <div class="col-md-5 position-relative">
-                    <label class="form-label font-weight-bold">Buscar cliente (nombre o celular)</label>
-                    <div class="input-group">
-                        <input type="text" id="buscarCliente" class="form-control" placeholder="Escriba nombre o teléfono..." autocomplete="off" />
-                        <a asp-controller="Clientes" asp-action="Create" class="btn btn-outline-primary">Registrar cliente</a>
-                    </div>
-                    <div id="listaClientes" class="list-group position-absolute w-100 shadow" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
-                </div>
+
+
+
+
+
                 <div class="col-md-4">
-                    <label class="form-label font-weight-bold">Cliente de esta venta</label>
-                    <div id="clienteSeleccionadoTexto" class="form-control-plaintext text-muted font-italic">
-                        (ninguno seleccionado)
-                    </div>
-                    <input type="hidden" asp-for="ClienteId" id="ClienteId" value="" />
+                    <label class="form-label font-weight-bold">
+                        Cliente de esta venta
+                    </label>
+
+                    <div id="clienteSeleccionadoTexto"
+                        <label for="buscarCliente" class="form-label font-weight-bold">Cliente registrado</label>
+                        <div class="position-relative">
+                            <input type="search"
+                                   id="buscarCliente"
+                                   class="form-control"
+                                   placeholder="Buscar por nombre o teléfono..."
+                                   autocomplete="off" />
+                            <div id="listaClientes"
+                                 class="list-group position-absolute w-100 shadow"
+                                 style="z-index: 1000; display: none; max-height: 220px; overflow-y: auto;"></div>
                 </div>
             </div>
         </div>
     </div>
+                        <div id="clienteSeleccionadoTexto" class="form-text">Selecciona un cliente de la lista.</div>
+                        <span asp-validation-for="ClienteId" class="text-danger"></span>
 
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <h5 class="card-title text-secondary font-weight-bold mb-3">2. Productos</h5>
             <div class="row mb-3 align-items-end">
                 <div class="col-md-5 position-relative">
+                
                     <label class="form-label font-weight-bold">Buscar producto</label>
                     <input type="text" id="buscarProducto" class="form-control" placeholder="Escriba parte del nombre..." autocomplete="off" />
                     <div id="listaProductos" class="list-group position-absolute w-100 shadow" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
@@ -268,6 +278,15 @@
         }
 
         montoRecibidoInput.addEventListener('input', calcularTotales);
+
+        document.getElementById('formVenta').addEventListener('submit', function (event) {
+            if (!clienteIdInput.value) {
+                event.preventDefault();
+                clienteTexto.textContent = 'Selecciona un cliente registrado antes de continuar.';
+                clienteTexto.classList.add('text-danger');
+                buscarClienteInput.focus();
+            }
+        });
 
         document.addEventListener('click', function (e) {
             if (!buscarClienteInput.contains(e.target)) listaClientes.style.display = 'none';
